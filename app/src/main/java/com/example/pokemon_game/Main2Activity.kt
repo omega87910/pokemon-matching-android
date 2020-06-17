@@ -17,21 +17,26 @@ class Main2Activity : AppCompatActivity() {
     private var tableWidth = 12
     private var tableHeight = 6
     private var level = 5
+
     private var awardList = arrayListOf("增加分數","增加洗牌","增加提示","...沒有東西")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main2)
+        level = intent.getIntExtra("level",5)
         var selectPokemonA = Pokemon()
         var selectPokemonB = Pokemon()
         var bounceAnim = AnimationUtils.loadAnimation(this,R.anim.bounce)
-         var time = 180
-         var win = false
-         var pokemonTable = createPokemonTable()
-         var buttonTable = createTable(pokemonTable)
-     var pokemonBallButtonTable = createPokemonButtonTable()
-    var tips = 100
-        var refresh = 100
-         var score = 0
+        var combeCount = 0
+        var combeCountMax = 0
+        var combeScore = 0
+        var time = 180
+        var win = false
+        var pokemonTable = createPokemonTable()
+        var buttonTable = createTable(pokemonTable)
+        var pokemonBallButtonTable = createPokemonButtonTable()
+        var tips = 3
+        var refresh = 3
+        var score = 0
         tip_number.text = tips.toString()
         refresh_number.text = refresh.toString()
         timeProgressBar.max = time
@@ -64,6 +69,7 @@ class Main2Activity : AppCompatActivity() {
                 }
             }
         }.start()
+
         Log.d("init","init在這裡")
         tip_button.setOnClickListener {
             //執行提示
@@ -96,6 +102,7 @@ class Main2Activity : AppCompatActivity() {
             }
         }
         nextButton.setOnClickListener {
+            playSound("press")
             resultPopLayout.alpha = 0f
             awardPopLayout.alpha = 1f
             nextButton.visibility = View.INVISIBLE
@@ -103,12 +110,15 @@ class Main2Activity : AppCompatActivity() {
             for (i in 0..2){pokemonBallButtonTable[i].visibility = View.VISIBLE}
         }
         continueButton.setOnClickListener {
+            playSound("press")
             popLayoutBackground.alpha = 0f
             awardPopLayout.alpha = 0f
             awardLabel.alpha = 0f
             continueButton.visibility = View.INVISIBLE
+            awardText.alpha = 0f
             tip_button.isEnabled = true
             refresh_button.isEnabled = true
+            level+=1
             time = 180
             progressTimer.cancel()
             progressTimer.onFinish()
@@ -125,6 +135,7 @@ class Main2Activity : AppCompatActivity() {
             }
         }
         restartButton.setOnClickListener {
+            playSound("press")
             pokemonTable = createPokemonTable()
             popLayoutBackground.alpha = 0f
             gameOverPopLayout.alpha = 0f
@@ -163,7 +174,8 @@ class Main2Activity : AppCompatActivity() {
                             Log.d("pokeB",selectPokemonB.name+"")
                             if (selectPokemonA.name == selectPokemonB.name && (selectPokemonA.x != selectPokemonB.x || selectPokemonA.y != selectPokemonB.y)) {
                                 Log.d("findpath","找路近")
-                                if(findPath(nodeX = selectPokemonA.x!!,nodeY = selectPokemonA.y!!,destinationX = selectPokemonB.x!!,destinationY = selectPokemonB.y!!,Table = pokemonTable,getPath = true)){
+                                if(findPath(nodeX = selectPokemonA.x!!,nodeY = selectPokemonA.y!!,destinationX = selectPokemonB.x!!,destinationY = selectPokemonB.y!!,
+                                        Table = pokemonTable,getPath = true)){
                                     for (item in path){
                                         Log.d("itemName",item.name.toString())
                                         Log.d("itemX",item.x.toString())
@@ -173,7 +185,6 @@ class Main2Activity : AppCompatActivity() {
                                         buttonTable[item.y!!][item.x!!].animate().alpha(0f).setDuration(500)
                                         pokemonTable[item.y!!][item.x!!].name = "無"
                                     }
-                                    score += 100
                                     score_number.text = score.toString()
                                     win = Win(pokemonTable)
                                     if(win){
@@ -185,7 +196,9 @@ class Main2Activity : AppCompatActivity() {
                                         score_number.text = score.toString()
                                         timePopLayout.text = (time*100).toString()
                                         totalScorePopLayout.text = (time*100+score).toString()
-                                        score += time * 100
+                                        comboNumberPopLayout.text = combeCountMax.toString()
+                                        comboScorePopLayout.text = combeScore.toString()
+                                        score += time * 100 + combeScore
                                         score_number.text = score.toString()
                                         //nextButton.text = "繼續"
                                         playSound("victory")
@@ -194,8 +207,19 @@ class Main2Activity : AppCompatActivity() {
                                                 buttonTable[i][j].isEnabled = false
                                             }
                                         }
+                                    }else {
+                                        playSound("hit")
                                     }
-                                    playSound("hit")
+                                    combeCount += 1   //   連擊相關加分設定
+                                    if (combeCount >= 2) {
+                                        combeScore += 200
+                                        score = score + 100 + 200
+                                    }else {
+                                        score = score + 100
+                                    }
+                                    if (combeCount >= combeCountMax) {
+                                        combeCountMax = combeCount
+                                    }
                                 }else{//沒找到路徑
                                     Log.d("path","沒路近")
                                     buttonTable[selectPokemonA.y!!][selectPokemonA.x!!].animate().scaleX(1.0f).scaleY(1.0f).setDuration(300)
@@ -219,8 +243,6 @@ class Main2Activity : AppCompatActivity() {
                             Log.i("平常",pokemonTable.toString())
                         }
                     }
-
-
                 }
             }
         }
@@ -233,6 +255,7 @@ class Main2Activity : AppCompatActivity() {
                     }
                 }
                 awardLabel.alpha = 1f
+                awardText.alpha = 1f
                 playSound("open")
                 var award = awardList.random()
                 awardText.text = award
@@ -362,7 +385,7 @@ class Main2Activity : AppCompatActivity() {
             2 -> pokemonListLV2
             3 -> pokemonListLV3
             4 -> pokemonListLV4
-            else -> arrayListOf("無","無","無","無","無","無","無","無","無","無","無","無","無","無","小拉達")
+            else-> pokemonListLV4
         }
         var pokemon1DTable: MutableList<Pokemon> = mutableListOf()
         var pokemon2DTable: MutableList<MutableList<Pokemon>> = mutableListOf()
@@ -539,24 +562,25 @@ class Main2Activity : AppCompatActivity() {
         var selectB = Pokemon()
         for (i in 0..tableHeight-1){
             for (j in 0..tableWidth-1){
-            if(Table[i][j].name != "無"){
-                selectA.name = Table[i][j].name
-                selectA.x = j
-                selectA.y = i
-                for (k in 0..tableHeight-1){
-                    for( m in 0..tableWidth-1){
-                    if (selectA.name == Table[k][m].name && (i != k || j != m) ){
-                        selectB.name = Table[k][m].name
-                        selectB.x = m
-                        selectB.y = k
-                        if(findPath(nodeX = selectA.x!!, nodeY= selectA.y!!, destinationX = selectB.x!!, destinationY = selectB.y!!, Table = Table,getPath = false)){
-                            return Pair(selectA , selectB)
+                if(Table[i][j].name != "無"){
+                    selectA.name = Table[i][j].name
+                    selectA.x = j
+                    selectA.y = i
+                    for (k in 0..tableHeight-1){
+                        for( m in 0..tableWidth-1){
+                            if (selectA.name == Table[k][m].name && (i != k || j != m) ){
+                                selectB.name = Table[k][m].name
+                                selectB.x = m
+                                selectB.y = k
+                                if(findPath(nodeX = selectA.x!!, nodeY= selectA.y!!, destinationX = selectB.x!!, destinationY = selectB.y!!,
+                                    Table = Table,getPath = false)){
+                                    return Pair(selectA , selectB)
+                                }
+                            }
                         }
                     }
                 }
-                }
             }
-        }
         }
         selectA = Pokemon()
         selectB = Pokemon()
@@ -671,6 +695,7 @@ class Main2Activity : AppCompatActivity() {
             "miss" -> R.raw.miss
             "clear" -> R.raw.clear
             "gameover" -> R.raw.gameover
+            "press" -> R.raw.press
             else -> R.raw.cancel
         })
         player.start()
